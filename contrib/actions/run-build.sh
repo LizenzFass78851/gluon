@@ -5,13 +5,10 @@ set -e
 export BROKEN=1
 export GLUON_AUTOREMOVE=1
 export GLUON_DEPRECATED=1
-export GLUON_SITEDIR="contrib/ci/minimal-site"
+export GLUON_SITEDIR="site"
 export GLUON_TARGET="$1"
 export BUILD_LOG=1
-
-BUILD_THREADS="$(($(nproc) + 1))"
-
-echo "Building Gluon with $BUILD_THREADS threads"
+export DEFAULT_GLUON_RELEASE="b$(date '+%Y%m%d')"
 
 make update
-make -j$BUILD_THREADS V=s
+make -j$(nproc||printf "2") V=s
