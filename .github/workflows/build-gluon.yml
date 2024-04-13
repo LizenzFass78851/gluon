@@ -3,18 +3,15 @@ on:
   push:
     branches:
       - master
-      - next
-      - 'v20[2-9][0-9].[0-9].x'
+      - next*
+      - v20*
+      - ffc-*
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
   changed:
@@ -34,14 +31,11 @@ jobs:
           filters: .github/filters.yml
 
   build_firmware:
-    needs: changed
-    if: ${{ needs.changed.outputs.targets != '[]' && needs.changed.outputs.targets != '' }}
     strategy:
       fail-fast: false
       matrix:
-        # Read back changed targets to create build matrix
-        target: ${{ fromJSON(needs.changed.outputs.targets) }}
-    runs-on: ubuntu-22.04
+        target: [armsr-armv7, armsr-armv8, ath79-generic, ath79-mikrotik, ath79-nand, bcm27xx-bcm2708, bcm27xx-bcm2709, bcm27xx-bcm2710, bcm27xx-bcm2711, ipq40xx-generic, ipq40xx-mikrotik, ipq806x-generic, lantiq-xrx200, lantiq-xway, mediatek-filogic, mediatek-mt7622, mpc85xx-p1010, mpc85xx-p1020, mvebu-cortexa9, ramips-mt7620, ramips-mt7621, ramips-mt76x8, realtek-rtl838x, rockchip-armv8, sunxi-cortexa7, x86-64, x86-generic, x86-geode, x86-legacy]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
