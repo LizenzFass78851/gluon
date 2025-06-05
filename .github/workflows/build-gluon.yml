@@ -5,6 +5,7 @@ on:
       - main
       - next
       - 'v20[2-9][0-9].[0-9].x'
+      - ffc-*
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -44,6 +45,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Show system information
         run: contrib/actions/show-system-info.sh
