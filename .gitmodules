@@ -1,0 +1,4 @@
+[submodule "site-ffc"]
+	path = site-ffc
+	url = https://gitlab.com/FreifunkChemnitz/site-ffc
+	branch = multidomain
