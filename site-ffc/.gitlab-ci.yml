@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Unlicense
+# SPDX-FileCopyrightText: 2023 Freifunk Chemnitz e.V. <info@chemnitz.freifunk.net>
+---
+default:
+  image: debian:bullseye-slim
+  before_script:
+    - echo -e "\e[0Ksection_start:`date +%s`:preparation[collapsed=true]\r\e[0Kprepare build environment"
+    - apt-get update
+    - apt-get -y install ecdsautils build-essential curl gawk git libncurses-dev lua-check python3 shellcheck time unzip wget rsync subversion qemu-utils zlib1g-dev libssl-dev libelf-dev file
+    - apt-get -y install clang flex bison g++ gcc-multilib g++-multilib gettext libncurses5-dev python3-setuptools swig
+    - rm -rf ../gluon
+    - git clone https://github.com/freifunk-gluon/gluon.git ../gluon
+    - cd ../gluon
+    - git checkout v2023.2.5
+    - ln -s ../site-ffc site
+    - echo -e "\e[0Ksection_end:`date +%s`:preparation\r\e[0K"
+
+stages:
+  - lint
+  - build
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "$CI_DEFAULT_BRANCH"'
+
+check-siteconf:
+  image: debian:sid
+  stage: lint
+  script:
+    - make lint-lua V=s
+    - make lint-sh V=s
+
+build-gluon:
+  stage: build
+  tags: [gluon]
+  variables:
+    BROKEN: 1
+    FORCE_UNSAFE_CONFIGURE: 1
+  script:
+    - make update
+    - export DEFAULT_GLUON_RELEASE="b$(date '+%Y%m%d')"
+    - for target in $(make list-targets | sed '/bcm27xx/d'| sed '/mikrotik/d'); do GLUON_TARGET=${target} make -j$(nproc || printf 2); done
+    - make manifest GLUON_AUTOUPDATER_BRANCH=nightly
+    - make manifest GLUON_AUTOUPDATER_BRANCH=experimental
+    - make manifest GLUON_AUTOUPDATER_BRANCH=stable
+    - mkdir ~/.ssh
+    - chmod 700 ~/.ssh
+    - curl -sLO "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer"
+    - bash installer
+    - chmod 400 .secure_files/id_ed25519
+    - sftp -o StrictHostKeyChecking=accept-new -v -4 -i .secure_files/id_ed25519 jenkins@builds.chemnitz.freifunk.net <<< "mkdir data"
+    - sftp -o StrictHostKeyChecking=accept-new -v -4 -i .secure_files/id_ed25519 jenkins@builds.chemnitz.freifunk.net <<< "mkdir data/nightly"
+    - sftp -o StrictHostKeyChecking=accept-new -v -4 -i .secure_files/id_ed25519 jenkins@builds.chemnitz.freifunk.net <<< "mkdir data/nightly/$(date --iso-8601=date)"
+    - scp -4 -i .secure_files/id_ed25519 -r output/images/* jenkins@builds.chemnitz.freifunk.net:~/data/nightly/$(date --iso-8601=date)
