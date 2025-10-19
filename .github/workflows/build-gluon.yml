@@ -5,6 +5,7 @@ on:
       - main
       - next
       - 'v20[2-9][0-9].[0-9].x'
+      - ffc-*
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -37,6 +38,7 @@ jobs:
     needs: changed
     if: ${{ needs.changed.outputs.targets != '[]' && needs.changed.outputs.targets != '' }}
     strategy:
+      max-parallel: 18
       fail-fast: false
       matrix:
         # Read back changed targets to create build matrix
